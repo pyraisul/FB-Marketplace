@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scraper Results</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f8f9fa; color: #333; }
+        h1 { text-align: center; color: #007bff; margin-bottom: 30px; }
+        .back { text-align: center; margin-bottom: 20px; }
+        .back a { text-decoration: none; color: #007bff; font-weight: bold; }
+        .back a:hover { text-decoration: underline; }
+        .listing { background: white; border: 1px solid #e9ecef; border-radius: 10px; padding: 20px; margin: 20px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-wrap: wrap; }
+        .listing img { width: 200px; height: 200px; object-fit: cover; border-radius: 8px; margin-right: 20px; margin-bottom: 10px; }
+        .details { flex: 1; min-width: 300px; }
+        .title { font-size: 1.5em; font-weight: bold; margin-bottom: 10px; color: #495057; }
+        .price { font-size: 1.2em; font-weight: bold; color: #28a745; margin-bottom: 10px; }
+        .location { font-style: italic; color: #6c757d; margin-bottom: 10px; }
+        .status { margin-bottom: 10px; }
+        .status span { display: inline-block; padding: 5px 10px; border-radius: 5px; font-size: 0.9em; margin-right: 10px; }
+        .live { background: #d4edda; color: #155724; }
+        .sold { background: #f8d7da; color: #721c24; }
+        .hidden { background: #fff3cd; color: #856404; }
+        .seller { margin-bottom: 10px; }
+        .delivery { margin-bottom: 10px; }
+        .link { margin-top: 15px; }
+        .link a { background: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block; }
+        .link a:hover { background: #0056b3; }
+        .additional { margin-top: 15px; border-top: 1px solid #dee2e6; padding-top: 15px; }
+        .additional h4 { margin-bottom: 10px; color: #007bff; }
+        .additional p { margin: 5px 0; }
+        .no-results { text-align: center; font-size: 1.2em; color: #6c757d; }
+    </style>
+</head>
+<body>
+    <h1>Scraped Listings for "{{ query }}"</h1>
+    <div class="back"><a href="/">← Back to Search</a></div>
+    {% if listings %}
+        {% for listing in listings %}
+            <div class="listing">
+                {% if listing.primary_listing_photo and listing.primary_listing_photo.image.uri %}
+                    <img src="{{ listing.primary_listing_photo.image.uri }}" alt="Listing Image">
+                {% endif %}
+                <div class="details">
+                    <div class="title">{{ listing.marketplace_listing_title or listing.custom_title or 'No Title' }}</div>
+                    <div class="price">
+                        {% if listing.listing_price.formatted_amount %}
+                            {{ listing.listing_price.formatted_amount }}
+                        {% else %}
+                            Price not available
+                        {% endif %}
+                        {% if listing.strikethrough_price and listing.strikethrough_price.formatted_amount %}
+                            <span style="text-decoration: line-through; color: #dc3545;">{{ listing.strikethrough_price.formatted_amount }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="location">
+                        {% if listing.location.reverse_geocode_detailed and listing.location.reverse_geocode_detailed.city %}
+                            {{ listing.location.reverse_geocode_detailed.city }}, {{ listing.location.reverse_geocode_detailed.state or '' }}
+                        {% elif listing.location.reverse_geocode %}
+                            {{ listing.location.reverse_geocode.city }}, {{ listing.location.reverse_geocode.state or '' }}
+                        {% else %}
+                            Location not available
+                        {% endif %}
+                    </div>
+                    <div class="status">
+                        {% if listing.is_live %}<span class="live">Live</span>{% endif %}
+                        {% if listing.is_sold %}<span class="sold">Sold</span>{% endif %}
+                        {% if listing.is_hidden %}<span class="hidden">Hidden</span>{% endif %}
+                        {% if listing.is_pending %}<span>Pending</span>{% endif %}
+                    </div>
+                    {% if listing.marketplace_listing_seller %}
+                        <div class="seller">
+                            <strong>Seller:</strong> {{ listing.marketplace_listing_seller.name or 'Unknown' }}
+                        </div>
+                    {% endif %}
+                    {% if listing.delivery_types %}
+                        <div class="delivery">
+                            <strong>Delivery:</strong> {{ listing.delivery_types | join(', ') }}
+                        </div>
+                    {% endif %}
+                    <div class="link">
+                        <a href="{{ listing.listingUrl }}" target="_blank">View Full Listing</a>
+                    </div>
+                    <div class="additional">
+                        <h4>Additional Details</h4>
+                        <p><strong>ID:</strong> {{ listing.id }}</p>
+                        {% if listing.listing_price.amount %}
+                            <p><strong>Amount:</strong> {{ listing.listing_price.amount }} {{ listing.listing_price.currency or '' }}</p>
+                        {% endif %}
+                        {% if listing.comparable_price %}
+                            <p><strong>Comparable Price:</strong> {{ listing.comparable_price.formatted_amount or listing.comparable_price }}</p>
+                        {% endif %}
+                        {% if listing.marketplace_listing_category_id %}
+                            <p><strong>Category ID:</strong> {{ listing.marketplace_listing_category_id }}</p>
+                        {% endif %}
+                        {% if listing.origin_group %}
+                            <p><strong>Origin:</strong> {{ listing.origin_group }}</p>
+                        {% endif %}
+                        {% if listing.listing_video %}
+                            <p><strong>Video:</strong> Available</p>
+                        {% endif %}
+                        {% if listing.custom_sub_titles_with_rendering_flags %}
+                            <p><strong>Sub-titles:</strong> {{ listing.custom_sub_titles_with_rendering_flags | join(', ') }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-results">No listings found.</div>
+    {% endif %}
+</body>
+</html>

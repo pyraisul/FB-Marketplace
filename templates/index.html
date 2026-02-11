@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facebook Marketplace Scraper</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        form { max-width: 400px; }
+        label { display: block; margin-top: 10px; }
+        input { width: 100%; padding: 8px; margin-top: 5px; }
+        button { margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>Facebook Marketplace Scraper</h1>
+    <p>Enter a search query to scrape listings from Facebook Marketplace.</p>
+    <form method="post">
+        <label for="query">Search Query:</label>
+        <input type="text" id="query" name="query" required placeholder="e.g., phone, clothes">
+
+        <label for="max_items">Max Listings:</label>
+        <input type="number" id="max_items" name="max_items" min="1" max="100" value="50">
+
+        <button type="submit">Scrape Listings</button>
+    </form>
+</body>
+</html>
