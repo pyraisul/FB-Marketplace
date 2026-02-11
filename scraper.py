@@ -6,7 +6,7 @@ from extractor import extract_marketplace_listings
 from helper import extract_marketplace_doc_id, extract_browse_params
 
 # Configuration constants
-LOCATION_ID = "112922070389398"  # Default location ID
+LOCATION_ID = "113520048658655"  # Default location ID
 HEADERS = {
     'accept': '*/*',
     'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,bn;q=0.7',
@@ -94,7 +94,7 @@ async def scrape_listings(query, max_items=50):
 
     # Extract doc_id
     print("Extracting doc_id...")
-    cached_doc_id = await extract_marketplace_doc_id(page_content, current_headers)
+    cached_doc_id = await extract_marketplace_doc_id(page_content, current_headers, proxy_url=proxy_url)
 
     if not cached_doc_id:
         print("Failed to extract doc_id")
@@ -184,7 +184,8 @@ async def scrape_listings(query, max_items=50):
             try:
                 async with session.post('https://www.facebook.com/api/graphql/',
                                        headers=HEADERS,
-                                       data=data) as response:
+                                       data=data,
+                                       proxy=proxy_url) as response:
 
                     if response.status != 200:
                         break
