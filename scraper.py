@@ -6,7 +6,7 @@ from extractor import extract_marketplace_listings
 from helper import extract_marketplace_doc_id, extract_browse_params
 
 # Configuration constants
-LOCATION_ID = "113520048658655"  # Default location ID
+LOCATION_ID = "112922070389398"  # Default location ID
 HEADERS = {
     'accept': '*/*',
     'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8,bn;q=0.7',
@@ -26,7 +26,29 @@ HEADERS = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
     'x-fb-friendly-name': 'CometMarketplaceSearchContentPaginationQuery',
 }
-COOKIES = {}  # Add cookies if needed
+COOKIES = {
+    # Add Facebook cookies here if needed, e.g., 'c_user': 'your_id', 'xs': 'your_token'
+}
+
+proxy = {
+    "use_proxy": True,  # Set to True to enable proxy on Render
+    "username": "groups-RESIDENTIAL",
+    "password": "apify_proxy_z2faOHkbVrgtIWY62TM4a8vRkAuyGB1sgh5Y",
+    "hostname": "proxy.apify.com",
+    "port": 8000
+}
+
+def get_proxy_url(for_aiohttp=False):
+    """Generate proxy URL. For aiohttp, returns the URL directly. For requests, returns dict format."""
+    if not proxy["use_proxy"]:
+        return None
+
+    proxy_url = f"http://{proxy['username']}:{proxy['password']}@{proxy['hostname']}:{proxy['port']}"
+
+    if for_aiohttp:
+        return proxy_url
+    else:
+        return {"http": proxy_url, "https": proxy_url}
 
 async def scrape_listings(query, max_items=50):
     """
@@ -53,24 +75,32 @@ async def scrape_listings(query, max_items=50):
     print("Fetching marketplace page...")
     try:
         timeout = aiohttp.ClientTimeout(total=8)
-        connector = aiohttp.TCPConnector()
+        proxy_url = get_proxy_url(for_aiohttp=True)
+        connector = aiohttp.TCPConnector() if proxy_url is None else aiohttp.TCPConnector()
 
         async with aiohttp.ClientSession(timeout=timeout, cookies=COOKIES, connector=connector) as session:
-            async with session.get(url, headers=current_headers) as response:
+            async with session.get(url, headers=current_headers, proxy=proxy_url) as response:
+                print(f"Page fetch status: {response.status}")
                 response.raise_for_status()
                 page_content = await response.text()
+                print(f"Page content length: {len(page_content)}")
                 # Accept any response that has reasonable content
                 if len(page_content) < 100:
+                    print("Page content too short")
                     return []
-    except Exception:
+    except Exception as e:
+        print(f"Error fetching page: {e}")
         return []
 
     # Extract doc_id
+    print("Extracting doc_id...")
     cached_doc_id = await extract_marketplace_doc_id(page_content, current_headers)
 
     if not cached_doc_id:
         print("Failed to extract doc_id")
         return []
+
+    print(f"Extracted doc_id: {cached_doc_id}")
 
     print(f"Using doc_id: {cached_doc_id}")
 
@@ -89,8 +119,10 @@ async def scrape_listings(query, max_items=50):
     items_per_page = 24
 
     timeout = aiohttp.ClientTimeout(total=8)
+    proxy_url = get_proxy_url(for_aiohttp=True)
+    connector = aiohttp.TCPConnector() if proxy_url is None else aiohttp.TCPConnector()
 
-    async with aiohttp.ClientSession(timeout=timeout, cookies=COOKIES) as session:
+    async with aiohttp.ClientSession(timeout=timeout, cookies=COOKIES, connector=connector) as session:
         while len(all_listings) < max_items:
 
             # Prepare GraphQL variables
