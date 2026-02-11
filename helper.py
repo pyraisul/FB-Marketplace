@@ -85,7 +85,7 @@ def extract_browse_params(page_content):
 
     return None
 
-async def extract_marketplace_doc_id(page_content, headers, doc_type="search"):
+async def extract_marketplace_doc_id(page_content, headers, doc_type="search", proxy_url=None):
     """
     Extract Facebook Marketplace GraphQL doc_id (async).
     doc_type: "search" for CometMarketplaceSearchContentPaginationQuery or "pdp" for MarketplacePDPContainerQuery
@@ -99,6 +99,8 @@ async def extract_marketplace_doc_id(page_content, headers, doc_type="search"):
     if not js_urls:
         return None
 
+    print(f"Found {len(js_urls)} JS urls for doc_id extraction")
+
     # Select pattern based on doc_type
     if doc_type == "pdp":
         pattern = re.compile(
@@ -111,13 +113,13 @@ async def extract_marketplace_doc_id(page_content, headers, doc_type="search"):
             r'.*?a\.exports\s*=\s*"(\d+)"'
         )
 
-    timeout = aiohttp.ClientTimeout(total=3)  # Reduced timeout
+    timeout = aiohttp.ClientTimeout(total=10)
 
     async with aiohttp.ClientSession(headers=headers, timeout=timeout) as session:
         # Concurrent processing of JS files for better performance
         tasks = []
         for js_url in js_urls[:20]:  # Reduced from 40 to 20 for speed
-            tasks.append(check_js_file(session, js_url, pattern))
+            tasks.append(check_js_file(session, js_url, pattern, proxy_url=proxy_url))
 
         # Wait for first successful result
         for task in asyncio.as_completed(tasks):
@@ -130,11 +132,12 @@ async def extract_marketplace_doc_id(page_content, headers, doc_type="search"):
 
     return None
 
-async def check_js_file(session, js_url, pattern):
+async def check_js_file(session, js_url, pattern, proxy_url=None):
     """Check a single JS file for the doc_id pattern."""
     try:
-        async with session.get(js_url) as resp:
+        async with session.get(js_url, proxy=proxy_url) as resp:
             if resp.status != 200:
+                print(f"JS fetch failed {resp.status} for {js_url}")
                 return None
             text = await resp.text()
             match = pattern.search(text)
@@ -143,6 +146,6 @@ async def check_js_file(session, js_url, pattern):
         return None
 
 # Backward compatibility
-async def extract_marketplace_pdp_doc_id(page_content, headers):
+async def extract_marketplace_pdp_doc_id(page_content, headers, proxy_url=None):
     """Backward compatibility wrapper for PDP doc_id extraction."""
-    return await extract_marketplace_doc_id(page_content, headers, doc_type="pdp")
+    return await extract_marketplace_doc_id(page_content, headers, doc_type="pdp", proxy_url=proxy_url)
